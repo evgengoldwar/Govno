@@ -18,6 +18,13 @@ func tick(dt: float, center: Vector2, size: Vector2, b: String) -> void:
 
 
 func _draw() -> void:
+	# use the canvas transform of this exact frame so the background never lags the camera
+	var inv := get_canvas_transform().affine_inverse()
+	var vs := get_viewport_rect().size
+	var a := inv * Vector2.ZERO
+	var b := inv * vs
+	view_size = b - a
+	cam_center = (a + b) * 0.5
 	var pal: Dictionary = C.BIOME[biome]
 	var tl := cam_center - view_size * 0.5 - Vector2(4, 4)
 	var sz := view_size + Vector2(8, 8)
@@ -35,8 +42,14 @@ func _draw() -> void:
 			_hell(tl, sz, far, pal["accent"])
 
 
-func _layer_x(par: float, period: float) -> float:
-	return -fmod(cam_center.x * par, period)
+## Integer index of the first parallax element that can be visible.
+func _first(par: float, period: float) -> int:
+	return int(floor(cam_center.x * par / period)) - 1
+
+
+## Screen-anchored x of element idx.
+func _elem_x(tl: Vector2, idx: int, par: float, period: float) -> float:
+	return tl.x + idx * period - cam_center.x * par
 
 
 func _castle(tl: Vector2, sz: Vector2, far: Color, acc: Color) -> void:
@@ -48,9 +61,10 @@ func _castle(tl: Vector2, sz: Vector2, far: Color, acc: Color) -> void:
 		var period := 420.0 - layer * 80.0
 		var col := far.lightened(layer * 0.06)
 		var base_y := tl.y + sz.y * (0.55 + layer * 0.15)
-		var x0 := tl.x + _layer_x(par, period) - period
+		var idx := _first(par, period)
+		var x0 := _elem_x(tl, idx, par, period)
 		while x0 < tl.x + sz.x + period:
-			var sd := int(floor((x0 - tl.x + cam_center.x * par) / period)) + layer * 7
+			var sd := idx + layer * 7
 			var hgt := 120.0 + float(absi(sd * 37) % 90)
 			var wdt := 70.0 + float(absi(sd * 13) % 40)
 			var bx := x0 + 40
@@ -61,10 +75,11 @@ func _castle(tl: Vector2, sz: Vector2, far: Color, acc: Color) -> void:
 				var lit := (absi(sd * 11 + k * 5) % 3) == 0
 				var wc := Color(acc.r, acc.g, acc.b, 0.35 + 0.1 * sin(t * 2.0 + k)) if lit else col.darkened(0.3)
 				draw_rect(Rect2(bx + wdt / 2.0 - 5, wy, 10, 16), wc)
-			x0 += period
+			idx += 1
+			x0 = _elem_x(tl, idx, par, period)
 	# drifting dust
 	for k in range(18):
-		var px := tl.x + fmod(k * 137.0 + t * (8.0 + k % 5) - cam_center.x * 0.1, sz.x + 40.0)
+		var px := tl.x + fposmod(k * 137.0 + t * (8.0 + k % 5) - cam_center.x * 0.1, sz.x + 40.0)
 		var py := tl.y + fmod(k * 71.0 + sin(t * 0.5 + k) * 20.0 + 1000.0, sz.y)
 		draw_circle(Vector2(px, py), 1.5, Color(1, 1, 1, 0.12))
 
@@ -74,9 +89,10 @@ func _cave(tl: Vector2, sz: Vector2, far: Color, acc: Color) -> void:
 		var par := 0.2 + layer * 0.25
 		var period := 180.0 + layer * 60.0
 		var col := far.lightened(layer * 0.05)
-		var x0 := tl.x + _layer_x(par, period) - period
+		var idx := _first(par, period)
+		var x0 := _elem_x(tl, idx, par, period)
 		while x0 < tl.x + sz.x + period:
-			var sd := int(floor((x0 - tl.x + cam_center.x * par) / period)) + layer * 13
+			var sd := idx + layer * 13
 			var hl := 60.0 + float(absi(sd * 41) % 120)
 			var hb := 50.0 + float(absi(sd * 29) % 100)
 			var wdt := 50.0 + float(absi(sd * 17) % 50)
@@ -85,9 +101,10 @@ func _cave(tl: Vector2, sz: Vector2, far: Color, acc: Color) -> void:
 			if absi(sd) % 3 == 0:
 				var cp := Vector2(x0 + 60 + wdt * 0.5, tl.y + sz.y - hb - 8)
 				draw_circle(cp, 10.0, Color(acc.r, acc.g, acc.b, 0.06 + 0.04 * sin(t * 2.0 + sd)))
-			x0 += period
+			idx += 1
+			x0 = _elem_x(tl, idx, par, period)
 	for k in range(24):
-		var px := tl.x + fmod(k * 97.0 + sin(t * 0.3 + k) * 30.0 - cam_center.x * 0.3 + 5000.0, sz.x)
+		var px := tl.x + fposmod(k * 97.0 + sin(t * 0.3 + k) * 30.0 - cam_center.x * 0.3 + 5000.0, sz.x)
 		var py := tl.y + fmod(k * 53.0 - t * (6.0 + k % 4) + 5000.0, sz.y)
 		draw_circle(Vector2(px, py), 1.6, Color(acc.r, acc.g, acc.b, 0.25))
 
@@ -98,19 +115,21 @@ func _hell(tl: Vector2, sz: Vector2, far: Color, acc: Color) -> void:
 		var par := 0.15 + layer * 0.2
 		var period := 260.0 + layer * 40.0
 		var col := far.lightened(layer * 0.05)
-		var x0 := tl.x + _layer_x(par, period) - period
+		var idx := _first(par, period)
+		var x0 := _elem_x(tl, idx, par, period)
 		var base_y := tl.y + sz.y * (0.62 + layer * 0.14)
 		while x0 < tl.x + sz.x + period:
-			var sd := int(floor((x0 - tl.x + cam_center.x * par) / period)) + layer * 5
+			var sd := idx + layer * 5
 			var h1 := 80.0 + float(absi(sd * 23) % 110)
 			var h2 := 40.0 + float(absi(sd * 31) % 80)
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(x0, base_y), Vector2(x0 + period * 0.3, base_y - h1), Vector2(x0 + period * 0.45, base_y - h1 * 0.6),
 				Vector2(x0 + period * 0.7, base_y - h2), Vector2(x0 + period + 2, base_y), Vector2(x0 + period + 2, tl.y + sz.y + 4),
 				Vector2(x0, tl.y + sz.y + 4)]), col)
-			x0 += period
+			idx += 1
+			x0 = _elem_x(tl, idx, par, period)
 	for k in range(30):
-		var px := tl.x + fmod(k * 113.0 + sin(t + k) * 12.0 - cam_center.x * 0.25 + 9000.0, sz.x)
+		var px := tl.x + fposmod(k * 113.0 + sin(t + k) * 12.0 - cam_center.x * 0.25 + 9000.0, sz.x)
 		var ph := fmod(t * (0.15 + (k % 5) * 0.03) + k * 0.13, 1.0)
 		var py := tl.y + sz.y * (1.0 - ph)
 		draw_circle(Vector2(px, py), 1.8, Color(acc.r, acc.g * 0.8, acc.b, 0.6 * (1.0 - ph)))

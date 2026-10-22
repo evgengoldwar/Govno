@@ -87,6 +87,11 @@ var pending_reward := ""
 func _ready() -> void:
 	randomize()
 	_setup_actions()
+	# run the simulation at the display refresh rate so 90/120 Hz phones stay smooth
+	var hz := DisplayServer.screen_get_refresh_rate()
+	if hz > 61.0:
+		Engine.physics_ticks_per_second = clampi(int(round(hz)), 60, 144)
+		Engine.max_physics_steps_per_frame = 8
 	var f := FileAccess.open("res://data/world.json", FileAccess.READ)
 	world = JSON.parse_string(f.get_as_text())
 	for r in world["rooms"]:
