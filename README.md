@@ -44,4 +44,5 @@ E/↑ — действие, 1–5 или Q/R — стихии, M — карта,
   (`python3 tools/build_world.py --check --preview map.png` — проверка проходимости для каждого набора стихий)
 - `tests/` — автотесты: `godot --headless --fixed-fps 60 -s res://tests/play_test.gd` и `smoke_test.gd`
 
-Для сборки под Android: Проект → Экспорт → Android (нужны шаблоны экспорта Godot 4.7).
+Сборка APK: `tools/build_apk.sh` (Godot 4.7.2 + Android-шаблоны экспорта; подпись APK v2 делает `tools/apksign.py`,
+Android SDK build-tools не нужны). Пресет экспорта — `export_presets.cfg` (arm64-v8a + armeabi-v7a, Android 7.0+).
