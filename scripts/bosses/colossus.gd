@@ -34,8 +34,7 @@ func ai(dt: float) -> void:
 	rocks = keep
 	match state:
 		"dormant":
-			if absf(tp.x) < 520.0:
-				game.boss_start(self)
+			if absf(tp.x) < 520.0 and game.boss_start(self):
 				state = "walk"
 				st = 1.5
 		"walk":

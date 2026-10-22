@@ -27,8 +27,7 @@ func ai(dt: float) -> void:
 	var enraged := hp < max_hp * 0.5
 	match state:
 		"dormant":
-			if player_dist() < 520.0:
-				game.boss_start(self)
+			if player_dist() < 520.0 and game.boss_start(self):
 				state = "move"
 				st = 1.5
 		"move":

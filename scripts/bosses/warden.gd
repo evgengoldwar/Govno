@@ -23,8 +23,7 @@ func ai(dt: float) -> void:
 	var spd := 1.3 if enraged else 1.0
 	match state:
 		"dormant":
-			if absf(tp.x) < 420.0:
-				game.boss_start(self)
+			if absf(tp.x) < 420.0 and game.boss_start(self):
 				state = "idle"
 				st = 1.2
 		"idle":

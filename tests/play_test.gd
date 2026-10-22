@@ -97,5 +97,27 @@ func _run() -> void:
 		Input.action_release("jump")
 		await _frames(6)
 	check(p.position.y < depth - 100.0 or main.level.id == "C2", "swims upward in water form")
+	# boss arena must not lock while the hero stands in a doorway
+	p.form = "fire"
+	p.invuln = 999.0
+	main._load_room("B1")
+	var ox: int = main.level.ox
+	var oy: int = main.level.oy
+	p.position = Vector2((ox + 31.5) * 32, (oy + 19) * 32 - 14)  # in the floor opening from below
+	await _frames(10)
+	check(main.boss == null, "boss waits while hero is in the floor opening")
+	p.position = Vector2((ox + 0.6) * 32, (oy + 18) * 32 - 14)  # in the side doorway
+	await _frames(10)
+	check(main.boss == null, "boss waits while hero is in the side doorway")
+	Input.action_press("right")
+	await _frames(190)
+	Input.action_release("right")
+	check(main.boss != null, "boss fight starts once the hero is inside")
+	var free: bool = not main.level.solid_px(p.position) and not main.level.solid_px(p.position + Vector2(0, 12))
+	check(free, "hero is not stuck in a wall after the doors lock")
+	Input.action_press("right")
+	await _frames(30)
+	Input.action_release("right")
+	check(main.level.id == "B1", "hero can move inside the locked arena")
 	print("FAILS: ", fails)
 	quit()

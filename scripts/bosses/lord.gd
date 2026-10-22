@@ -58,8 +58,7 @@ func ai(dt: float) -> void:
 	var rect: Rect2 = game.level.rect_px()
 	if state == "dormant":
 		position = home + Vector2(0, sin(t * 1.5) * 6.0)
-		if player_dist() < 470.0:
-			game.boss_start(self)
+		if player_dist() < 470.0 and game.boss_start(self):
 			state = "fight"
 			atk_cd = 2.5
 			aura_t = _period()

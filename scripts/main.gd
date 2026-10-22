@@ -548,13 +548,38 @@ func on_enemy_dead(e) -> void:
 		boss_defeated(e)
 
 
-func boss_start(b) -> void:
+## Starts a boss fight. Returns false while the hero is still in a doorway,
+## so the arena never locks with the hero inside the wall.
+func boss_start(b) -> bool:
+	if player.dead:
+		return false
+	var r: Rect2 = level.rect_px()
+	var inner := Rect2(r.position.x + T * 2.0, r.position.y + T * 2.0, r.size.x - T * 4.0, r.size.y - T * 4.0)
+	var box := Rect2(player.position - player.half, player.half * 2.0)
+	if not inner.encloses(box):
+		return false
 	boss = b
 	boss_locked = level.lock_doors()
 	refresh_level()
+	_unstick_player()
 	banner(b.boss_name, "Страж пробудился!")
 	shake(8.0)
 	sfx.play("roar")
+	return true
+
+
+## Pushes the hero out of solid tiles (safety net after doors close).
+func _unstick_player() -> void:
+	for i in range(8):
+		var p: Vector2 = player.position
+		var h: Vector2 = player.half
+		var stuck := false
+		for c in [p + Vector2(-h.x + 1, -h.y + 1), p + Vector2(h.x - 1, -h.y + 1), p + Vector2(-h.x + 1, h.y - 1), p + Vector2(h.x - 1, h.y - 1)]:
+			if level.solid_px(c):
+				stuck = true
+		if not stuck:
+			return
+		player.position.y -= T * 0.5
 
 
 func boss_defeated(b) -> void:
